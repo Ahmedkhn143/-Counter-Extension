@@ -3,11 +3,15 @@ async function getData() {
     "dailyCount",
     "weeklyCount",
     "monthlyCount",
+    "highQualityCount",
+    "dailyGoal",
     "dailyResetKey",
     "weeklyResetKey",
     "monthlyResetKey",
+    "widgetPosition",
+    "isCollapsed",
+    "history",
     "count",
-    "lastResetDate",
   ]);
 
   const dailyCount = Number(data.dailyCount ?? data.count ?? 0);
@@ -16,11 +20,15 @@ async function getData() {
     dailyCount,
     weeklyCount: Number(data.weeklyCount ?? 0),
     monthlyCount: Number(data.monthlyCount ?? 0),
+    highQualityCount: Number(data.highQualityCount ?? 0),
+    dailyGoal: Number(data.dailyGoal ?? 20),
     dailyResetKey: data.dailyResetKey || "",
     weeklyResetKey: data.weeklyResetKey || "",
     monthlyResetKey: data.monthlyResetKey || "",
+    widgetPosition: data.widgetPosition || null,
+    isCollapsed: Boolean(data.isCollapsed ?? false),
+    history: data.history || {},
     count: dailyCount,
-    lastResetDate: data.lastResetDate || "",
   };
 }
 
@@ -66,13 +74,19 @@ async function checkReset() {
     dailyCount: data.dailyCount,
     weeklyCount: data.weeklyCount,
     monthlyCount: data.monthlyCount,
+    highQualityCount: data.highQualityCount,
     dailyResetKey: data.dailyResetKey,
     weeklyResetKey: data.weeklyResetKey,
     monthlyResetKey: data.monthlyResetKey,
+    history: data.history,
   };
 
   if (data.dailyResetKey !== resetKeys.dailyResetKey) {
+    if (data.dailyResetKey) {
+      updatedState.history[data.dailyResetKey] = data.dailyCount;
+    }
     updatedState.dailyCount = 0;
+    updatedState.highQualityCount = 0;
     updatedState.dailyResetKey = resetKeys.dailyResetKey;
   }
 
@@ -86,17 +100,7 @@ async function checkReset() {
     updatedState.monthlyResetKey = resetKeys.monthlyResetKey;
   }
 
-  if (
-    updatedState.dailyCount !== data.dailyCount ||
-    updatedState.weeklyCount !== data.weeklyCount ||
-    updatedState.monthlyCount !== data.monthlyCount ||
-    updatedState.dailyResetKey !== data.dailyResetKey ||
-    updatedState.weeklyResetKey !== data.weeklyResetKey ||
-    updatedState.monthlyResetKey !== data.monthlyResetKey
-  ) {
-    await chrome.storage.local.set(updatedState);
-  }
-
+  await chrome.storage.local.set(updatedState);
   return updatedState;
 }
 
@@ -115,12 +119,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const newDailyCount = data.dailyCount + 1;
       const newWeeklyCount = data.weeklyCount + 1;
       const newMonthlyCount = data.monthlyCount + 1;
+      const newHighQualityCount = message.isHighQuality ? data.highQualityCount + 1 : data.highQualityCount;
+
+      const dateKey = getDateKey(new Date());
+      const updatedHistory = { ...data.history, [dateKey]: newDailyCount };
 
       await chrome.storage.local.set({
         dailyCount: newDailyCount,
         weeklyCount: newWeeklyCount,
         monthlyCount: newMonthlyCount,
+        highQualityCount: newHighQualityCount,
         count: newDailyCount,
+        history: updatedHistory,
       });
 
       sendResponse({
@@ -128,6 +138,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         dailyCount: newDailyCount,
         weeklyCount: newWeeklyCount,
         monthlyCount: newMonthlyCount,
+        highQualityCount: newHighQualityCount,
+        dailyGoal: data.dailyGoal,
+        isCollapsed: data.isCollapsed,
+        widgetPosition: data.widgetPosition,
       });
     });
 
@@ -143,9 +157,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         dailyCount: data.dailyCount,
         weeklyCount: data.weeklyCount,
         monthlyCount: data.monthlyCount,
+        highQualityCount: data.highQualityCount,
+        dailyGoal: data.dailyGoal,
+        isCollapsed: data.isCollapsed,
+        widgetPosition: data.widgetPosition,
+        history: data.history,
       });
     });
 
+    return true;
+  }
+
+  if (message.type === "SET_DAILY_GOAL") {
+    const goal = Math.max(1, Number(message.dailyGoal || 20));
+    chrome.storage.local.set({ dailyGoal: goal }).then(() => {
+      sendResponse({ success: true, dailyGoal: goal });
+    });
+    return true;
+  }
+
+  if (message.type === "SET_COLLAPSED") {
+    chrome.storage.local.set({ isCollapsed: Boolean(message.isCollapsed) }).then(() => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  if (message.type === "SET_POSITION") {
+    chrome.storage.local.set({ widgetPosition: message.widgetPosition }).then(() => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  if (message.type === "RESET_ALL_DATA") {
+    chrome.storage.local.set({
+      dailyCount: 0,
+      weeklyCount: 0,
+      monthlyCount: 0,
+      highQualityCount: 0,
+      count: 0,
+      history: {},
+    }).then(() => {
+      sendResponse({ success: true });
+    });
     return true;
   }
 

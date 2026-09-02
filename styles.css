@@ -1,28 +1,135 @@
 #linkedin-comment-counter {
   position: fixed;
-  top: 60px;
+  top: 65px;
   right: 22px;
   z-index: 999999;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   background: #0a66c2;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 10px;
-  font-size: 15px;
+  color: #ffffff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
   user-select: none;
+  min-width: 210px;
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+#linkedin-comment-counter.collapsed {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  min-width: auto;
+}
+
+.counter-collapsed-badge {
+  background: #0a66c2;
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+  font-size: 14px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.counter-collapsed-badge:hover {
+  transform: scale(1.05);
+  background: #004182;
+}
+
+.counter-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: move;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.drag-grip {
+  font-size: 14px;
+  opacity: 0.6;
+  margin-right: 4px;
 }
 
 .counter-card-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
+  flex: 1;
+}
+
+.counter-icon-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  transition: background 0.2s ease;
+}
+
+.counter-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.counter-progress-container {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  height: 8px;
+  width: 100%;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.counter-progress-bar {
+  background: #10b981;
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.counter-goal-text {
+  font-size: 12px;
+  opacity: 0.9;
+  text-align: right;
   margin-bottom: 2px;
 }
 
-#linkedin-comment-counter div {
-  white-space: nowrap;
+.counter-stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.stat-value {
+  font-weight: 700;
+  font-size: 14px;
 }
