@@ -36,7 +36,6 @@ function renderCounter(response) {
   const isCollapsed = Boolean(response.isCollapsed);
   const pos = response.widgetPosition;
 
-  // Restore position if saved
   if (pos && typeof pos.top === "number" && typeof pos.left === "number") {
     counterElement.style.top = `${pos.top}px`;
     counterElement.style.left = `${pos.left}px`;
@@ -81,14 +80,12 @@ function renderCounter(response) {
     </div>
   `;
 
-  // Toggle Collapse Listener
   const toggleBtn = counterElement.querySelector("#counter-toggle-btn");
   toggleBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
     toggleCollapse(true);
   });
 
-  // Setup Dragging
   setupDragging();
 }
 
@@ -140,6 +137,7 @@ function updateCounter() {
 }
 
 function incrementCounter(isHighQuality = false) {
+  console.log("[LinkedIn Comment Counter] Incrementing comment count! High quality:", isHighQuality);
   sendMessage("INCREMENT_COMMENT_COUNT", { isHighQuality }, (response) => {
     renderCounter(response);
   });
@@ -149,30 +147,16 @@ function normalizeText(value) {
   return (value || "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
-function isDecorativeIconElement(element) {
-  if (!(element instanceof Element)) return false;
-  const tagName = element.tagName.toLowerCase();
-  return ["svg", "path", "use", "img", "i"].includes(tagName);
-}
-
 function getInteractiveElement(element) {
   if (!(element instanceof Element)) return null;
-  return element.closest("button, [role='button'], a[href]");
-}
-
-function isCommentToggleButton(control) {
-  if (control.hasAttribute("aria-expanded")) return true;
-  const socialBar = control.closest(
-    "[class*='social-actions'], [class*='feed-shared-social-action-bar']",
-  );
-  return !!socialBar;
+  return element.closest("button, [role='button'], a[href], input[type='submit']");
 }
 
 function findNearbyTextInput(control) {
   let node = control;
-  for (let i = 0; i < 3 && node; i += 1) {
+  for (let i = 0; i < 4 && node; i += 1) {
     const input = node.querySelector(
-      "[contenteditable='true'], textarea, .ql-editor",
+      "[contenteditable='true'], textarea, .ql-editor, .comments-comment-box__editor"
     );
     if (input) return input;
     node = node.parentElement;
@@ -180,56 +164,72 @@ function findNearbyTextInput(control) {
   return null;
 }
 
-function hasCommentSubmitComponentKey(control) {
-  const componentKey = normalizeText(control.getAttribute("componentkey"));
-  return /commentbuttonsection/.test(componentKey);
-}
-
-function isCommentSubmitButton(control) {
-  if (isCommentToggleButton(control)) return false;
-  if (hasCommentSubmitComponentKey(control)) return true;
-  return !!findNearbyTextInput(control);
-}
-
-function isCommentButton(element) {
+function isCommentSubmitButton(element) {
   if (!element || !(element instanceof Element)) return false;
+
   const control = getInteractiveElement(element);
   if (!control) return false;
 
-  if (isDecorativeIconElement(element)) return false;
-
-  const targetTag = (element.tagName || "").toLowerCase();
-  const targetText = normalizeText(element.innerText || element.textContent);
-  const ariaLabel = normalizeText(control.getAttribute("aria-label"));
-  const title = normalizeText(control.getAttribute("title"));
-  const dataControlName = normalizeText(control.getAttribute("data-control-name"));
-  const text = normalizeText(control.innerText || control.textContent);
-
-  const label = `${ariaLabel} ${title} ${dataControlName} ${text}`;
-  if (!/comment/.test(label)) return false;
-
-  if (element !== control) {
-    const targetMatches = ["span", "div", "p"].includes(targetTag) && /comment/.test(targetText);
-    if (!targetMatches) return false;
+  // 1. Exclude Feed Social Toolbar Toggle Buttons (Like, Comment section expander, Repost, Send)
+  const isSocialBar = control.closest(".feed-shared-social-action-bar, [class*='social-actions']");
+  if (isSocialBar && (control.hasAttribute("aria-expanded") || control.getAttribute("aria-pressed"))) {
+    return false;
   }
 
-  return isCommentSubmitButton(control);
+  // 2. Direct Class / ID / Attribute Matching for LinkedIn Comment Submit Button
+  const className = normalizeText(control.className);
+  const componentKey = normalizeText(control.getAttribute("componentkey") || "");
+  const id = normalizeText(control.id);
+  const ariaLabel = normalizeText(control.getAttribute("aria-label") || "");
+  const title = normalizeText(control.getAttribute("title") || "");
+  const text = normalizeText(control.innerText || control.textContent || "");
+
+  if (
+    className.includes("comments-comment-box__submit-button") ||
+    className.includes("comments-comment-box__dispatch") ||
+    className.includes("comments-comment-box__form") ||
+    componentKey.includes("commentbuttonsection") ||
+    id.includes("comment-submit")
+  ) {
+    return true;
+  }
+
+  // 3. Inside a Comment Form Container or Comment Box
+  const commentBox = control.closest(
+    ".comments-comment-box, .comments-comment-form, .comments-comment-box__form, .comments-comment-texteditor, form[class*='comment']"
+  );
+
+  const isSubmitWord = /^(post|comment|reply|publish|send)$/i.test(text) ||
+                       /post|comment|reply|publish/.test(ariaLabel) ||
+                       /post|comment|reply|publish/.test(title);
+
+  if (commentBox && isSubmitWord) {
+    return true;
+  }
+
+  // 4. Proximity Fallback: Near an editable text input AND has submit-like text
+  const nearbyInput = findNearbyTextInput(control);
+  if (nearbyInput && (isSubmitWord || className.includes("submit") || className.includes("btn"))) {
+    return true;
+  }
+
+  return false;
 }
 
 document.addEventListener(
   "click",
   (event) => {
-    if (!isCommentButton(event.target)) return;
+    if (!isCommentSubmitButton(event.target)) return;
 
     const now = Date.now();
-    if (lastCommentTarget === event.target && now - lastCommentTimestamp < 400) {
+    if (lastCommentTarget === event.target && now - lastCommentTimestamp < 500) {
       return;
     }
 
     lastCommentTarget = event.target;
     lastCommentTimestamp = now;
 
-    // Check comment word count for High Quality metric (> 10 words)
+    // Word Count for High Quality detector
     const control = getInteractiveElement(event.target);
     const textInput = control ? findNearbyTextInput(control) : null;
     const commentText = textInput ? (textInput.innerText || textInput.value || "") : "";
@@ -238,8 +238,20 @@ document.addEventListener(
 
     incrementCounter(isHighQuality);
   },
-  true,
+  true
 );
+
+// Fallback form submit listener
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (form && (form.classList.contains("comments-comment-box__form") || form.closest(".comments-comment-box"))) {
+    const now = Date.now();
+    if (now - lastCommentTimestamp > 500) {
+      lastCommentTimestamp = now;
+      incrementCounter(false);
+    }
+  }
+}, true);
 
 window.addEventListener("load", () => {
   ensureCounterUI();
