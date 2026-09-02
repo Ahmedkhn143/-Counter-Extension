@@ -27,6 +27,7 @@ async function getData() {
     monthlyResetKey: data.monthlyResetKey || "",
     widgetPosition: data.widgetPosition || null,
     isCollapsed: Boolean(data.isCollapsed ?? false),
+    isEnabled: Boolean(data.isEnabled ?? true),
     history: data.history || {},
     count: dailyCount,
   };
@@ -141,6 +142,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         highQualityCount: newHighQualityCount,
         dailyGoal: data.dailyGoal,
         isCollapsed: data.isCollapsed,
+        isEnabled: data.isEnabled,
         widgetPosition: data.widgetPosition,
       });
     });
@@ -160,11 +162,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         highQualityCount: data.highQualityCount,
         dailyGoal: data.dailyGoal,
         isCollapsed: data.isCollapsed,
+        isEnabled: data.isEnabled,
         widgetPosition: data.widgetPosition,
         history: data.history,
       });
     });
 
+    return true;
+  }
+
+  if (message.type === "SET_ENABLED") {
+    const isEnabled = Boolean(message.isEnabled);
+    chrome.storage.local.set({ isEnabled }).then(() => {
+      chrome.tabs.query({ url: "https://www.linkedin.com/*" }, (tabs) => {
+        tabs.forEach((tab) => {
+          chrome.tabs.sendMessage(tab.id, { type: "STATE_CHANGED", isEnabled }).catch(() => {});
+        });
+      });
+      sendResponse({ success: true, isEnabled });
+    });
     return true;
   }
 

@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const extensionToggle = document.getElementById("extension-toggle");
+  const statusText = document.getElementById("status-text");
   const goalInput = document.getElementById("goal-input");
   const saveGoalBtn = document.getElementById("save-goal-btn");
   const exportCsvBtn = document.getElementById("export-csv-btn");
@@ -12,6 +14,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const goalPercentText = document.getElementById("goal-percent-text");
   const popupProgressFill = document.getElementById("popup-progress-fill");
 
+  function updateStatusUI(isEnabled) {
+    extensionToggle.checked = isEnabled;
+    statusText.textContent = isEnabled ? "Active (ON)" : "Disabled (OFF)";
+    statusText.classList.toggle("disabled", !isEnabled);
+  }
+
   function loadStats() {
     chrome.runtime.sendMessage({ type: "GET_COMMENT_COUNT" }, (res) => {
       if (chrome.runtime.lastError || !res) return;
@@ -21,6 +29,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const weeklyCount = Number(res.weeklyCount ?? 0);
       const monthlyCount = Number(res.monthlyCount ?? 0);
       const dailyGoal = Number(res.dailyGoal ?? 20);
+      const isEnabled = Boolean(res.isEnabled ?? true);
+
+      updateStatusUI(isEnabled);
 
       statToday.textContent = dailyCount;
       statQuality.textContent = highQualityCount;
@@ -34,6 +45,15 @@ document.addEventListener("DOMContentLoaded", () => {
       popupProgressFill.style.width = `${percent}%`;
     });
   }
+
+  extensionToggle.addEventListener("change", (e) => {
+    const isEnabled = e.target.checked;
+    chrome.runtime.sendMessage({ type: "SET_ENABLED", isEnabled }, (res) => {
+      if (res?.success) {
+        updateStatusUI(isEnabled);
+      }
+    });
+  });
 
   saveGoalBtn.addEventListener("click", () => {
     const val = parseInt(goalInput.value, 10);

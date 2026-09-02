@@ -4,6 +4,22 @@ let lastCommentTimestamp = 0;
 let isDragging = false;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
+let isEnabled = true;
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === "STATE_CHANGED") {
+    isEnabled = Boolean(message.isEnabled);
+    if (!isEnabled) {
+      if (counterElement && counterElement.parentElement) {
+        counterElement.remove();
+        counterElement = null;
+      }
+    } else {
+      ensureCounterUI();
+      updateCounter();
+    }
+  }
+});
 
 function sendMessage(type, payload = {}, callback = null) {
   chrome.runtime.sendMessage({ type, ...payload }, (response) => {
@@ -13,6 +29,7 @@ function sendMessage(type, payload = {}, callback = null) {
 }
 
 function ensureCounterUI() {
+  if (!isEnabled) return;
   const body = document.body;
   if (!body) return;
 
@@ -26,7 +43,24 @@ function ensureCounterUI() {
 }
 
 function renderCounter(response) {
-  if (!response || !counterElement) return;
+  if (!response) return;
+
+  if (typeof response.isEnabled !== "undefined") {
+    isEnabled = Boolean(response.isEnabled);
+  }
+
+  if (!isEnabled) {
+    if (counterElement && counterElement.parentElement) {
+      counterElement.remove();
+      counterElement = null;
+    }
+    return;
+  }
+
+  if (!counterElement) {
+    ensureCounterUI();
+    if (!counterElement) return;
+  }
 
   const dailyCount = Number(response.dailyCount ?? response.count ?? 0);
   const weeklyCount = Number(response.weeklyCount ?? 0);
@@ -220,6 +254,7 @@ function isCommentSubmitButton(element) {
 document.addEventListener(
   "click",
   (event) => {
+    if (!isEnabled) return;
     if (!isCommentSubmitButton(event.target)) return;
 
     const now = Date.now();
@@ -244,6 +279,7 @@ document.addEventListener(
 
 // Fallback form submit listener
 document.addEventListener("submit", (event) => {
+  if (!isEnabled) return;
   const form = event.target;
   if (form && (form.classList.contains("comments-comment-box__form") || form.closest(".comments-comment-box"))) {
     const now = Date.now();
