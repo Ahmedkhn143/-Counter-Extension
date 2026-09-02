@@ -76,3 +76,10 @@ LinkedIn Comment Counter does **NOT** collect, transmit, store, or share any per
 ## 📜 License
 
 This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## 👥 Authors & Developers
+
+Developed with ❤️ by **Amdad Shabbir & Ahmad Khan**.
+

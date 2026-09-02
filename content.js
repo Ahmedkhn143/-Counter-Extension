@@ -78,6 +78,7 @@ function renderCounter(response) {
       <div class="stat-item"><span class="stat-label">This Week:</span> <span class="stat-value">${weeklyCount}</span></div>
       <div class="stat-item"><span class="stat-label">This Month:</span> <span class="stat-value">${monthlyCount}</span></div>
     </div>
+    <div class="counter-credits">By Amdad Shabbir & Ahmad Khan</div>
   `;
 
   const toggleBtn = counterElement.querySelector("#counter-toggle-btn");
