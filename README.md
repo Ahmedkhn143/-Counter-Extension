@@ -12,13 +12,19 @@ A lightweight, privacy-first Chrome Extension that tracks and displays how many 
 ## 🌟 Features
 
 - 📊 **Real-Time Tracking**: Automatically increments your comment count the instant you post a comment.
+- ⌨️ **Keyboard Shortcut Support**: Detects comments submitted via `Enter` or `Ctrl+Enter` as well as button clicks.
+- 🔥 **Streak Gamification**: Tracks consecutive days meeting your daily goal (`🔥 Day Streak`).
+- 🎉 **Goal Celebration**: Dynamic confetti celebration triggered right upon reaching 100% of your daily goal.
+- 🌓 **LinkedIn Dark Mode Support**: Automatically adapts glassmorphism card theme to LinkedIn's dark or light mode.
+- 📈 **7-Day Activity Mini-Chart**: Visual bar chart in popup showing 7-day trends and goal completion.
 - 📅 **Daily, Weekly & Monthly Metrics**: View your activity at a glance:
   - **Today**: Reset automatically at midnight.
+  - **Quality (>10w)**: Flags thoughtful, in-depth contributions.
   - **This Week**: Track weekly outreach goals.
   - **This Month**: Monitor overall engagement consistency.
 - 🎯 **Smart Button Detection**: Differentiates between opening a comment editor and actually submitting a comment to avoid false triggers.
 - ⏱️ **Automatic Cycle Resets**: Zero manual effort required; reset triggers handle new days, weeks, and months seamlessly.
-- 🎨 **Native LinkedIn UI Card**: Displays a sleek, non-intrusive floating card in LinkedIn's official brand blue (`#0A66C2`).
+- 🎨 **Native LinkedIn UI Card**: Draggable, collapsible widget with quick status indicators.
 - 🔒 **100% Private & Local**: Stores all statistics locally in `chrome.storage.local`. No external servers, no tracking, and no data collection.
 
 ---
@@ -35,7 +41,7 @@ A lightweight, privacy-first Chrome Extension that tracks and displays how many 
 
 1. **Clone or Download this Repository**:
    ```bash
-   git clone https://github.com/your-username/linkedin-comment-counter.git
+   git clone https://github.com/Ahmedkhn143/-Counter-Extension.git
    ```
    *(Or click **Code → Download ZIP** and extract it)*.
 
@@ -81,5 +87,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 👥 Authors & Developers
 
-Developed with ❤️ by **Amdad Shabbir & Ahmad Khan**.
-
+Developed with ❤️ by **Muhammad Ahmad**.

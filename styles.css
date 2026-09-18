@@ -105,11 +105,37 @@
   transition: width 0.3s ease;
 }
 
+.counter-goal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
 .counter-goal-text {
   font-size: 12px;
-  opacity: 0.9;
-  text-align: right;
-  margin-bottom: 2px;
+  opacity: 0.95;
+  font-weight: 600;
+}
+
+.counter-streak-badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffedd5;
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid rgba(255, 200, 100, 0.35);
+  animation: streak-glow 2s infinite ease-in-out;
+}
+
+@keyframes streak-glow {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; transform: scale(1.03); }
 }
 
 .counter-stats-grid {
@@ -141,5 +167,66 @@
   margin-top: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   padding-top: 4px;
+}
+
+/* Dark Mode Theme Support */
+#linkedin-comment-counter.theme-dark {
+  background: #1b2734;
+  color: #f3f4f6;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+#linkedin-comment-counter.theme-dark .counter-collapsed-badge {
+  background: #1b2734;
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+#linkedin-comment-counter.theme-dark .counter-progress-container {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+#linkedin-comment-counter.theme-dark .counter-icon-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#linkedin-comment-counter.theme-dark .counter-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+#linkedin-comment-counter.theme-dark .counter-streak-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+/* Goal Confetti Animation */
+.counter-confetti-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999999;
+  overflow: hidden;
+}
+
+.counter-confetti-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  opacity: 1;
+  animation: confetti-explode ease-out forwards;
+}
+
+@keyframes confetti-explode {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx, 0), var(--ty, -60px)) rotate(720deg) scale(0.4);
+  }
 }
 

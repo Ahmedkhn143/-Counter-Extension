@@ -47,7 +47,23 @@ body {
 .header-title {
   font-weight: 700;
   font-size: 16px;
-  color: #0a66c2;
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.streak-pill {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .version-badge {
@@ -215,6 +231,79 @@ input:checked + .slider:before {
   font-weight: 600;
   color: #6b7280;
   margin-top: 2px;
+}
+
+/* 7-Day Chart Styles */
+.chart-card {
+  padding: 12px 14px;
+}
+
+.chart-subtitle {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.chart-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 75px;
+  gap: 6px;
+  padding-top: 10px;
+}
+
+.chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.chart-val {
+  font-size: 10px;
+  font-weight: 700;
+  color: #4b5563;
+  margin-bottom: 2px;
+}
+
+.chart-bar-track {
+  width: 100%;
+  height: 50px;
+  display: flex;
+  align-items: flex-end;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.chart-bar-fill {
+  width: 100%;
+  background: #94a3b8;
+  border-radius: 4px;
+  min-height: 3px;
+  transition: height 0.4s ease, background 0.2s ease;
+}
+
+.chart-bar-fill.is-today {
+  background: #0a66c2;
+}
+
+.chart-bar-fill.goal-met {
+  background: #10b981;
+}
+
+.chart-day {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.chart-day.is-today {
+  color: #0a66c2;
+  font-weight: 800;
 }
 
 .popup-actions {

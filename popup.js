@@ -10,6 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const statQuality = document.getElementById("stat-quality");
   const statWeek = document.getElementById("stat-week");
   const statMonth = document.getElementById("stat-month");
+  const statStreak = document.getElementById("stat-streak");
+  const chartContainer = document.getElementById("activity-chart");
+  const chartTotalText = document.getElementById("chart-total-text");
 
   const goalPercentText = document.getElementById("goal-percent-text");
   const popupProgressFill = document.getElementById("popup-progress-fill");
@@ -18,6 +21,58 @@ document.addEventListener("DOMContentLoaded", () => {
     extensionToggle.checked = isEnabled;
     statusText.textContent = isEnabled ? "Active (ON)" : "Disabled (OFF)";
     statusText.classList.toggle("disabled", !isEnabled);
+  }
+
+  function renderChart(history = {}, dailyCount = 0, dailyGoal = 20) {
+    if (!chartContainer) return;
+    const days = [];
+    const now = new Date();
+    let total7Days = 0;
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const key = `${year}-${month}-${day}`;
+
+      const count = i === 0 ? dailyCount : Number(history[key] ?? 0);
+      total7Days += count;
+
+      const dayLabel = d.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 2);
+      days.push({
+        key,
+        dayLabel,
+        count,
+        isToday: i === 0,
+      });
+    }
+
+    if (chartTotalText) {
+      chartTotalText.textContent = `${total7Days} total`;
+    }
+
+    const maxCount = Math.max(dailyGoal, ...days.map((item) => item.count), 1);
+    chartContainer.innerHTML = "";
+
+    days.forEach((item) => {
+      const col = document.createElement("div");
+      col.className = "chart-col";
+      col.title = `${item.key}: ${item.count} comments`;
+
+      const heightPct = Math.max(6, Math.min(100, Math.round((item.count / maxCount) * 100)));
+      const isGoalMet = item.count >= dailyGoal && item.count > 0;
+
+      col.innerHTML = `
+        <span class="chart-val">${item.count}</span>
+        <div class="chart-bar-track">
+          <div class="chart-bar-fill ${item.isToday ? "is-today" : ""} ${isGoalMet ? "goal-met" : ""}" style="height: ${heightPct}%"></div>
+        </div>
+        <span class="chart-day ${item.isToday ? "is-today" : ""}">${item.dayLabel}</span>
+      `;
+      chartContainer.appendChild(col);
+    });
   }
 
   function loadStats() {
@@ -29,6 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const weeklyCount = Number(res.weeklyCount ?? 0);
       const monthlyCount = Number(res.monthlyCount ?? 0);
       const dailyGoal = Number(res.dailyGoal ?? 20);
+      const currentStreak = Number(res.currentStreak ?? 0);
       const isEnabled = Boolean(res.isEnabled ?? true);
 
       updateStatusUI(isEnabled);
@@ -37,12 +93,15 @@ document.addEventListener("DOMContentLoaded", () => {
       statQuality.textContent = highQualityCount;
       statWeek.textContent = weeklyCount;
       statMonth.textContent = monthlyCount;
+      if (statStreak) statStreak.textContent = currentStreak;
 
       goalInput.value = dailyGoal;
 
       const percent = Math.min(100, Math.round((dailyCount / dailyGoal) * 100));
       goalPercentText.textContent = `${percent}%`;
       popupProgressFill.style.width = `${percent}%`;
+
+      renderChart(res.history || {}, dailyCount, dailyGoal);
     });
   }
 

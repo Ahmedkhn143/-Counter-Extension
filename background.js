@@ -12,6 +12,10 @@ async function getData() {
     "isCollapsed",
     "history",
     "count",
+    "currentStreak",
+    "lastGoalCompletedDate",
+    "goalCelebratedDate",
+    "isEnabled",
   ]);
 
   const dailyCount = Number(data.dailyCount ?? data.count ?? 0);
@@ -30,6 +34,9 @@ async function getData() {
     isEnabled: Boolean(data.isEnabled ?? true),
     history: data.history || {},
     count: dailyCount,
+    currentStreak: Number(data.currentStreak ?? 0),
+    lastGoalCompletedDate: data.lastGoalCompletedDate || "",
+    goalCelebratedDate: data.goalCelebratedDate || "",
   };
 }
 
@@ -39,6 +46,12 @@ function getDateKey(date) {
   const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function getYesterdayKey(now = new Date()) {
+  const d = new Date(now);
+  d.setDate(d.getDate() - 1);
+  return getDateKey(d);
 }
 
 function getMonthKey(date) {
@@ -71,6 +84,8 @@ async function checkReset() {
   const data = await getData();
   const now = new Date();
   const resetKeys = getResetKeys(now);
+  const yesterdayKey = getYesterdayKey(now);
+
   const updatedState = {
     dailyCount: data.dailyCount,
     weeklyCount: data.weeklyCount,
@@ -80,11 +95,18 @@ async function checkReset() {
     weeklyResetKey: data.weeklyResetKey,
     monthlyResetKey: data.monthlyResetKey,
     history: data.history,
+    currentStreak: data.currentStreak,
+    lastGoalCompletedDate: data.lastGoalCompletedDate,
+    goalCelebratedDate: data.goalCelebratedDate,
   };
 
   if (data.dailyResetKey !== resetKeys.dailyResetKey) {
     if (data.dailyResetKey) {
       updatedState.history[data.dailyResetKey] = data.dailyCount;
+    }
+    // Check if streak was broken (yesterday was missed and not completed today either)
+    if (data.lastGoalCompletedDate !== yesterdayKey && data.lastGoalCompletedDate !== resetKeys.dailyResetKey) {
+      updatedState.currentStreak = 0;
     }
     updatedState.dailyCount = 0;
     updatedState.highQualityCount = 0;
@@ -102,7 +124,7 @@ async function checkReset() {
   }
 
   await chrome.storage.local.set(updatedState);
-  return updatedState;
+  return { ...data, ...updatedState };
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -115,15 +137,39 @@ chrome.runtime.onStartup.addListener(async () => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "INCREMENT_COMMENT_COUNT") {
-    checkReset().then(async () => {
+    checkReset().then(async (resetData) => {
       const data = await getData();
       const newDailyCount = data.dailyCount + 1;
       const newWeeklyCount = data.weeklyCount + 1;
       const newMonthlyCount = data.monthlyCount + 1;
       const newHighQualityCount = message.isHighQuality ? data.highQualityCount + 1 : data.highQualityCount;
 
-      const dateKey = getDateKey(new Date());
+      const now = new Date();
+      const dateKey = getDateKey(now);
+      const yesterdayKey = getYesterdayKey(now);
       const updatedHistory = { ...data.history, [dateKey]: newDailyCount };
+
+      let currentStreak = data.currentStreak;
+      let lastGoalCompletedDate = data.lastGoalCompletedDate;
+      let goalCelebratedDate = data.goalCelebratedDate;
+      let triggerCelebration = false;
+
+      // Check if daily goal achieved
+      if (newDailyCount >= data.dailyGoal) {
+        if (lastGoalCompletedDate !== dateKey) {
+          if (lastGoalCompletedDate === yesterdayKey) {
+            currentStreak = (currentStreak || 0) + 1;
+          } else {
+            currentStreak = 1;
+          }
+          lastGoalCompletedDate = dateKey;
+        }
+
+        if (goalCelebratedDate !== dateKey) {
+          triggerCelebration = true;
+          goalCelebratedDate = dateKey;
+        }
+      }
 
       await chrome.storage.local.set({
         dailyCount: newDailyCount,
@@ -132,6 +178,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         highQualityCount: newHighQualityCount,
         count: newDailyCount,
         history: updatedHistory,
+        currentStreak,
+        lastGoalCompletedDate,
+        goalCelebratedDate,
       });
 
       sendResponse({
@@ -144,6 +193,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         isCollapsed: data.isCollapsed,
         isEnabled: data.isEnabled,
         widgetPosition: data.widgetPosition,
+        currentStreak,
+        triggerCelebration,
       });
     });
 
@@ -165,6 +216,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         isEnabled: data.isEnabled,
         widgetPosition: data.widgetPosition,
         history: data.history,
+        currentStreak: data.currentStreak,
       });
     });
 
@@ -214,6 +266,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       highQualityCount: 0,
       count: 0,
       history: {},
+      currentStreak: 0,
+      lastGoalCompletedDate: "",
+      goalCelebratedDate: "",
     }).then(() => {
       sendResponse({ success: true });
     });

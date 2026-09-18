@@ -42,6 +42,53 @@ function ensureCounterUI() {
   updateCounter();
 }
 
+function isLinkedInDarkMode() {
+  return (
+    document.documentElement.classList.contains("theme--dark") ||
+    document.body?.classList.contains("theme--dark") ||
+    window.matchMedia?.("(prefers-color-scheme: dark)").matches
+  );
+}
+
+function applyTheme() {
+  if (!counterElement) return;
+  counterElement.classList.toggle("theme-dark", Boolean(isLinkedInDarkMode()));
+}
+
+function fireConfetti() {
+  if (!counterElement) return;
+  const rect = counterElement.getBoundingClientRect();
+  const originX = Math.max(20, rect.left + rect.width / 2);
+  const originY = Math.max(20, rect.top + 20);
+
+  const container = document.createElement("div");
+  container.className = "counter-confetti-container";
+  document.body.appendChild(container);
+
+  const colors = ["#0a66c2", "#38a169", "#e0245e", "#ffad1f", "#7952b3", "#00c4cc", "#f59e0b"];
+  for (let i = 0; i < 36; i++) {
+    const p = document.createElement("div");
+    p.className = "counter-confetti-particle";
+    p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    p.style.left = `${originX}px`;
+    p.style.top = `${originY}px`;
+
+    const angle = Math.random() * 2 * Math.PI;
+    const velocity = 50 + Math.random() * 90;
+    const tx = Math.cos(angle) * velocity;
+    const ty = Math.sin(angle) * velocity - 70;
+    p.style.setProperty("--tx", `${tx}px`);
+    p.style.setProperty("--ty", `${ty}px`);
+    p.style.animationDuration = `${0.9 + Math.random() * 0.6}s`;
+
+    container.appendChild(p);
+  }
+
+  setTimeout(() => {
+    container.remove();
+  }, 1800);
+}
+
 function renderCounter(response) {
   if (!response) return;
 
@@ -67,8 +114,11 @@ function renderCounter(response) {
   const monthlyCount = Number(response.monthlyCount ?? 0);
   const highQualityCount = Number(response.highQualityCount ?? 0);
   const dailyGoal = Number(response.dailyGoal ?? 20);
+  const currentStreak = Number(response.currentStreak ?? 0);
   const isCollapsed = Boolean(response.isCollapsed);
   const pos = response.widgetPosition;
+
+  applyTheme();
 
   if (pos && typeof pos.top === "number" && typeof pos.left === "number") {
     counterElement.style.top = `${pos.top}px`;
@@ -77,13 +127,14 @@ function renderCounter(response) {
   }
 
   const percent = Math.min(100, Math.round((dailyCount / dailyGoal) * 100));
+  const streakText = currentStreak > 0 ? ` · 🔥${currentStreak}` : "";
 
   if (isCollapsed) {
-    counterElement.className = "collapsed";
+    counterElement.className = "collapsed" + (isLinkedInDarkMode() ? " theme-dark" : "");
     counterElement.innerHTML = `
       <div class="counter-collapsed-badge" title="Click to expand LinkedIn Comment Counter">
         <span class="badge-icon">💬</span>
-        <span class="badge-text">${dailyCount}/${dailyGoal}</span>
+        <span class="badge-text">${dailyCount}/${dailyGoal}${streakText}</span>
       </div>
     `;
     const badge = counterElement.querySelector(".counter-collapsed-badge");
@@ -93,7 +144,11 @@ function renderCounter(response) {
     return;
   }
 
-  counterElement.className = "";
+  const streakBadgeHtml = currentStreak > 0
+    ? `<div class="counter-streak-badge" title="${currentStreak} consecutive days meeting your goal!"><span class="fire-icon">🔥</span> ${currentStreak}-Day Streak</div>`
+    : "";
+
+  counterElement.className = isLinkedInDarkMode() ? "theme-dark" : "";
   counterElement.innerHTML = `
     <div class="counter-card-header" id="counter-drag-handle">
       <span class="drag-grip">⋮⋮</span>
@@ -104,7 +159,10 @@ function renderCounter(response) {
     <div class="counter-progress-container" title="${percent}% of daily goal completed">
       <div class="counter-progress-bar" style="width: ${percent}%"></div>
     </div>
-    <div class="counter-goal-text">Goal: ${dailyCount}/${dailyGoal} (${percent}%)</div>
+    <div class="counter-goal-row">
+      <span class="counter-goal-text">Goal: ${dailyCount}/${dailyGoal} (${percent}%)</span>
+      ${streakBadgeHtml}
+    </div>
 
     <div class="counter-stats-grid">
       <div class="stat-item"><span class="stat-label">Today:</span> <span class="stat-value">${dailyCount}</span></div>
@@ -112,7 +170,7 @@ function renderCounter(response) {
       <div class="stat-item"><span class="stat-label">This Week:</span> <span class="stat-value">${weeklyCount}</span></div>
       <div class="stat-item"><span class="stat-label">This Month:</span> <span class="stat-value">${monthlyCount}</span></div>
     </div>
-    <div class="counter-credits">By Amdad Shabbir & Ahmad Khan</div>
+    <div class="counter-credits">By Muhammad Ahmad</div>
   `;
 
   const toggleBtn = counterElement.querySelector("#counter-toggle-btn");
@@ -175,6 +233,9 @@ function incrementCounter(isHighQuality = false) {
   console.log("[LinkedIn Comment Counter] Incrementing comment count! High quality:", isHighQuality);
   sendMessage("INCREMENT_COMMENT_COUNT", { isHighQuality }, (response) => {
     renderCounter(response);
+    if (response?.triggerCelebration) {
+      fireConfetti();
+    }
   });
 }
 
@@ -251,6 +312,7 @@ function isCommentSubmitButton(element) {
   return false;
 }
 
+// Mouse click submit detection
 document.addEventListener(
   "click",
   (event) => {
@@ -258,7 +320,7 @@ document.addEventListener(
     if (!isCommentSubmitButton(event.target)) return;
 
     const now = Date.now();
-    if (lastCommentTarget === event.target && now - lastCommentTimestamp < 500) {
+    if (lastCommentTarget === event.target && now - lastCommentTimestamp < 800) {
       return;
     }
 
@@ -277,26 +339,80 @@ document.addEventListener(
   true
 );
 
+// Keyboard Enter / Ctrl+Enter detection inside comment editor
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (!isEnabled) return;
+    if (event.key !== "Enter") return;
+
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    // Check if target is inside an editable comment area
+    const isCommentBox = target.closest(
+      ".comments-comment-box, .comments-comment-form, .comments-comment-texteditor, form[class*='comment'], .feed-shared-update-v2 form"
+    );
+    const isContentEditable = target.isContentEditable || target.classList.contains("ql-editor") || target.tagName === "TEXTAREA";
+
+    if (!isCommentBox && !isContentEditable) return;
+
+    // Shift + Enter is typically used for line break, not submit
+    if (event.shiftKey) return;
+
+    const text = (target.innerText || target.value || target.textContent || "").trim();
+    if (!text || text.length === 0) return;
+
+    const now = Date.now();
+    // Prevent double counting if both keydown and button click trigger
+    if (lastCommentTarget === target && now - lastCommentTimestamp < 800) {
+      return;
+    }
+
+    lastCommentTarget = target;
+    lastCommentTimestamp = now;
+
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    const isHighQuality = wordCount >= 10;
+
+    incrementCounter(isHighQuality);
+  },
+  true
+);
+
 // Fallback form submit listener
 document.addEventListener("submit", (event) => {
   if (!isEnabled) return;
   const form = event.target;
   if (form && (form.classList.contains("comments-comment-box__form") || form.closest(".comments-comment-box"))) {
     const now = Date.now();
-    if (now - lastCommentTimestamp > 500) {
+    if (now - lastCommentTimestamp > 800) {
       lastCommentTimestamp = now;
       incrementCounter(false);
     }
   }
 }, true);
 
+// Theme observer for LinkedIn dark mode toggling
+const themeObserver = new MutationObserver(() => {
+  applyTheme();
+});
+if (document.documentElement) {
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+}
+
 window.addEventListener("load", () => {
   ensureCounterUI();
   updateCounter();
+  applyTheme();
 });
 
 if (document.readyState === "complete" || document.readyState === "interactive") {
   ensureCounterUI();
+  applyTheme();
 } else {
-  document.addEventListener("DOMContentLoaded", ensureCounterUI, { once: true });
+  document.addEventListener("DOMContentLoaded", () => {
+    ensureCounterUI();
+    applyTheme();
+  }, { once: true });
 }

@@ -14,7 +14,10 @@
         <div class="logo-box">in</div>
         <span class="header-title">Comment Counter</span>
       </div>
-      <span class="version-badge">v1.1</span>
+      <div class="header-badges">
+        <span class="streak-pill" id="popup-streak-pill" title="Current Daily Goal Streak">🔥 <span id="stat-streak">0</span>d</span>
+        <span class="version-badge">v1.2</span>
+      </div>
     </div>
 
     <!-- Master Enable/Disable Toggle -->
@@ -65,6 +68,17 @@
       </div>
     </div>
 
+    <!-- 7-Day Activity Mini-Chart -->
+    <div class="card chart-card">
+      <div class="card-header">
+        <span>7-Day Activity</span>
+        <span class="chart-subtitle" id="chart-total-text">0 total</span>
+      </div>
+      <div class="chart-container" id="activity-chart">
+        <!-- Bars injected via popup.js -->
+      </div>
+    </div>
+
     <!-- Actions Footer -->
     <div class="popup-actions">
       <button id="export-csv-btn" class="btn btn-outline">
@@ -77,7 +91,7 @@
 
     <!-- Developer Footer -->
     <div class="developer-footer">
-      Developed by <strong>Amdad Shabbir & Ahmad Khan</strong>
+      Developed by <strong>Muhammad Ahmad</strong>
     </div>
   </div>
 
