@@ -75,34 +75,51 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function applyStatsData(res) {
+    const dailyCount = Number(res.dailyCount ?? 0);
+    const highQualityCount = Number(res.highQualityCount ?? 0);
+    const weeklyCount = Number(res.weeklyCount ?? 0);
+    const monthlyCount = Number(res.monthlyCount ?? 0);
+    const dailyGoal = Number(res.dailyGoal ?? 20);
+    const currentStreak = Number(res.currentStreak ?? 0);
+    const isEnabled = Boolean(res.isEnabled ?? true);
+
+    updateStatusUI(isEnabled);
+
+    statToday.textContent = dailyCount;
+    statQuality.textContent = highQualityCount;
+    statWeek.textContent = weeklyCount;
+    statMonth.textContent = monthlyCount;
+    if (statStreak) statStreak.textContent = currentStreak;
+
+    goalInput.value = dailyGoal;
+
+    const percent = Math.min(100, Math.round((dailyCount / dailyGoal) * 100));
+    goalPercentText.textContent = `${percent}%`;
+    popupProgressFill.style.width = `${percent}%`;
+
+    renderChart(res.history || {}, dailyCount, dailyGoal);
+  }
+
   function loadStats() {
-    chrome.runtime.sendMessage({ type: "GET_COMMENT_COUNT" }, (res) => {
-      if (chrome.runtime.lastError || !res) return;
-
-      const dailyCount = Number(res.dailyCount ?? 0);
-      const highQualityCount = Number(res.highQualityCount ?? 0);
-      const weeklyCount = Number(res.weeklyCount ?? 0);
-      const monthlyCount = Number(res.monthlyCount ?? 0);
-      const dailyGoal = Number(res.dailyGoal ?? 20);
-      const currentStreak = Number(res.currentStreak ?? 0);
-      const isEnabled = Boolean(res.isEnabled ?? true);
-
-      updateStatusUI(isEnabled);
-
-      statToday.textContent = dailyCount;
-      statQuality.textContent = highQualityCount;
-      statWeek.textContent = weeklyCount;
-      statMonth.textContent = monthlyCount;
-      if (statStreak) statStreak.textContent = currentStreak;
-
-      goalInput.value = dailyGoal;
-
-      const percent = Math.min(100, Math.round((dailyCount / dailyGoal) * 100));
-      goalPercentText.textContent = `${percent}%`;
-      popupProgressFill.style.width = `${percent}%`;
-
-      renderChart(res.history || {}, dailyCount, dailyGoal);
-    });
+    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ type: "GET_COMMENT_COUNT" }, (res) => {
+        if (chrome.runtime.lastError || !res) return;
+        applyStatsData(res);
+      });
+    } else {
+      // Standalone preview fallback
+      applyStatsData({
+        dailyCount: 3,
+        highQualityCount: 0,
+        weeklyCount: 3,
+        monthlyCount: 36,
+        dailyGoal: 20,
+        currentStreak: 0,
+        isEnabled: true,
+        history: {}
+      });
+    }
   }
 
   extensionToggle.addEventListener("change", (e) => {
