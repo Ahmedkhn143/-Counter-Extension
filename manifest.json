@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Comment Counter",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Track, gamify, and count LinkedIn comments with streaks and analytics.",
   "permissions": ["storage"],
   "host_permissions": ["https://www.linkedin.com/*"],
